@@ -23,13 +23,12 @@ from sklearn.lda import LDA
 ### Task 1: Select what features you'll use.
 ### features_list is a list of strings, each of which is a feature name.
 ### The first feature must be "poi".
-features_list = ['poi', 'salary']  # You will need to use more features
+features_list = ['poi']  # You will need to use more features
 
 features_list += ['bonus', 'exercised_stock_options', 'total_stock_value']
 features_list += ['salary', 'deferral_payments', 'total_payments',
-                  'loan_advances', 'bonus', 'restricted_stock_deferred',
-                  'deferred_income', 'total_stock_value', 'expenses',
-                  'exercised_stock_options', 'other', 'long_term_incentive',
+                  'loan_advances', 'restricted_stock_deferred',
+                  'deferred_income', 'expenses', 'other', 'long_term_incentive',
                   'restricted_stock', 'director_fees']
 features_list += ['to_messages', 'from_poi_to_this_person', 'from_messages',
                   'from_this_person_to_poi', 'shared_receipt_with_poi']
@@ -56,6 +55,8 @@ for name in data_dict:
     except:
         data_dict[name]['to_poi_ratio'] = 'NaN'
 
+features_list += ['from_poi_ratio', 'to_poi_ratio']
+
 ### Store to my_dataset for easy export below.
 my_dataset = data_dict
 
@@ -73,18 +74,16 @@ labels, features = targetFeatureSplit(data)
 def train_optimal_classifier(clf, X, y, params, scale=False, folds=1000):
     pipeline = 0
 
-    combined_features = FeatureUnion([("pca", PCA()),
-                                      ("univ_select", SelectKBest())])
+    combined_features = FeatureUnion([("pca", PCA()), ("univ_select", SelectKBest())])
 
     if scale:
         pipeline = Pipeline([("minmax", MinMaxScaler()),
                              ("features", combined_features), ("clf", clf)])
     else:
-        pipeline = Pipeline([("minmax", MinMaxScaler()),
-                             ("features", combined_features), ("clf", clf)])
+        pipeline = Pipeline([("features", combined_features), ("clf", clf)])
 
-    param_grid = dict(features__pca__n_components=[0, 1, 5, 10, 20],
-                      features__univ_select__k=list(range(0, len(X[0]))))
+    param_grid = dict(features__pca__n_components=[0,1,3,6,9,12,15],
+            features__univ_select__k=list(range(0, len(X[0]))))
 
     for k, v in params.iteritems():
         param_grid["clf__" + k] = v
@@ -105,41 +104,52 @@ def train_optimal_classifier(clf, X, y, params, scale=False, folds=1000):
 classifiers = []
 
 # AdaBoost
-classifiers.append((AdaBoostClassifier(), {"n_estimators": [20, 25, 30, 40, 50, 100]}))
+classifiers.append(("AdaBoost", AdaBoostClassifier(), {"n_estimators": [20, 25, 30, 40, 50, 100]}))
 
 # SVC
-classifiers.append((SVC(), {"C": [0.1, 1, 10], "kernel": ['rbf', 'linear']}))
+classifiers.append(("SVC", SVC(), {"C": [0.1, 1, 10], "kernel": ['rbf', 'linear']}))
 
 # Random Forest
-classifiers.append( (RandomForestClassifier(), {  "n_estimators":[2, 3, 5], "criterion": ('gini', 'entropy') }) )
+classifiers.append( ("RandomForest", RandomForestClassifier(), {  "n_estimators":[2, 3, 5], "criterion": ('gini', 'entropy') }) )
 
 # KNN
-classifiers.append( (KNeighborsClassifier(), {"n_neighbors":[2, 5], "p":[2,3]}) )
+classifiers.append( ("KNeighbors",KNeighborsClassifier(), {"n_neighbors":[2, 5], "p":[2,3]}) )
 
 # Logistic Regression
 params = {  "C":[0.05, 0.5, 1, 10, 10**2,10**5,10**10, 10**20],
                 "tol":[10**-1, 10**-5, 10**-10],
                 "class_weight":['auto']
                 }
-classifiers.append( (LogisticRegression(), params) )
+classifiers.append( ("Logistic", LogisticRegression(), params) )
 
 # LDA
-classifiers.append( (LDA(), {"n_components":[0, 1, 2, 5, 10]}) )
+classifiers.append( ("LDA", LDA(), {"n_components":[0, 1, 2, 5, 10]}) )
 
 
 trained = []
 for v in classifiers:
-    clf = train_optimal_classifier(v[0], features, labels, v[1],
+    clf = train_optimal_classifier(v[1], features, labels, v[2],
                                    scale=True,
                                    folds=1000)
-    trained.append(clf)
+    trained.append(( v[0],clf ))
 
-best = max(trained, key=lambda r: r[1])
+best = max(trained, key=lambda r: r[1][1])
 
+print '\n' * 2
+print '############################################'
+
+from sklearn import metrics
+for v in trained:
+    print v[0]
+    test_classifier(v[1][0], my_dataset, features_list)
+print '\n'
+
+print '\n' * 2
+print '############################################'
 print 'Best classifier and score'
 print best
 print 'Steps'
-print best[0].steps
+print best[1][0].steps
 
 ### Task 5: Tune your classifier to achieve better than .3 precision and recall 
 ### using our testing script. Check the tester.py script in the final project
@@ -148,4 +158,4 @@ print best[0].steps
 ### stratified shuffle split cross validation. For more info: 
 ### http://scikit-learn.org/stable/modules/generated/sklearn.cross_validation.StratifiedShuffleSplit.html
 
-test_classifier(best[0], my_dataset, features_list)
+test_classifier(best[1][0], my_dataset, features_list)

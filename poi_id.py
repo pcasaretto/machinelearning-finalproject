@@ -10,13 +10,12 @@ from tester import dump_classifier_and_data, test_classifier
 ### Task 1: Select what features you'll use.
 ### features_list is a list of strings, each of which is a feature name.
 ### The first feature must be "poi".
-features_list = ['poi', 'salary']  # You will need to use more features
+features_list = ['poi']  # You will need to use more features
 
 features_list += ['bonus', 'exercised_stock_options', 'total_stock_value']
 features_list += ['salary', 'deferral_payments', 'total_payments',
-                  'loan_advances', 'bonus', 'restricted_stock_deferred',
-                  'deferred_income', 'total_stock_value', 'expenses',
-                  'exercised_stock_options', 'other', 'long_term_incentive',
+                  'loan_advances', 'restricted_stock_deferred',
+                  'deferred_income', 'expenses', 'other', 'long_term_incentive',
                   'restricted_stock', 'director_fees']
 features_list += ['to_messages', 'from_poi_to_this_person', 'from_messages',
                   'from_this_person_to_poi', 'shared_receipt_with_poi']
@@ -44,6 +43,8 @@ for name in data_dict:
     except:
         data_dict[name]['to_poi_ratio'] = 'NaN'
 
+features_list += ['from_poi_ratio', 'to_poi_ratio']
+
 ### Store to my_dataset for easy export below.
 my_dataset = data_dict
 
@@ -63,7 +64,7 @@ from sklearn.feature_selection import SelectKBest
 from sklearn.preprocessing import MinMaxScaler
 from sklearn.linear_model import LogisticRegression
 
-combined_features = FeatureUnion([("pca", PCA(n_components=20)), ("univ_select", SelectKBest(k=1))])
+combined_features = FeatureUnion([("pca", PCA(n_components=19)), ("univ_select", SelectKBest(k=1))])
 clf = LogisticRegression(C=100000, class_weight='auto', dual=False,
           fit_intercept=True, intercept_scaling=1, max_iter=100,
           multi_class='ovr', penalty='l2', random_state=None,
