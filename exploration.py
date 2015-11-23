@@ -98,7 +98,7 @@ def train_optimal_classifier(clf, X, y, params, scale=False, folds=1000):
         refit=True,
         )
     grid_search.fit(X, y)
-    return (grid_search.best_estimator_, grid_search.best_score_)
+    return (grid_search.best_estimator_, grid_search.best_score_, pipeline.fit(X,y))
 
 
 classifiers = []
@@ -142,6 +142,8 @@ from sklearn import metrics
 for v in trained:
     print v[0]
     test_classifier(v[1][0], my_dataset, features_list)
+    print 'Base score'
+    test_classifier(v[1][2], my_dataset, features_list)
 print '\n'
 
 print '\n' * 2
@@ -150,6 +152,24 @@ print 'Best classifier and score'
 print best
 print 'Steps'
 print best[1][0].steps
+
+print '\n' * 2
+print '############################################'
+print 'Effect of the engineered features'
+### Analyze the effect of the engineered features
+features_list.remove('from_poi_ratio')
+features_list.remove('to_poi_ratio')
+
+### Store to my_dataset for easy export below.
+secondDataset = data_dict
+
+### Extract features and labels from dataset for local testing
+data = featureFormat(secondDataset, features_list, sort_keys=True)
+labels, features = targetFeatureSplit(data)
+
+clf = best[1][0]
+clf.fit(features,labels)
+test_classifier(clf, secondDataset, features_list)
 
 ### Task 5: Tune your classifier to achieve better than .3 precision and recall 
 ### using our testing script. Check the tester.py script in the final project
